@@ -128,3 +128,83 @@ void Network::print_traj(const int time, const std::map<std::string, size_t> &_n
             }
     (*_out) << std::endl;
 }
+
+std::pair<size_t, double> Network::degree(const size_t& index) const{
+	std::pair<int, double> res;
+	int nb(0);
+	double str(0.);
+	std::vector<std::pair<size_t, double>> n (neighbors(index));
+	for(auto& neighbor : n){
+		++nb;
+		str += neighbor.second;
+	}
+	res.first = nb;
+	res.second = str;
+	return res;
+}
+
+std::vector<std::pair<size_t, double> > Network::neighbors(const size_t& index) const{
+	
+	std::vector<std::pair<size_t, double>> res;
+	
+	std::map<std::pair<long unsigned int, long unsigned int>, double>::const_iterator it;
+	std::pair<long unsigned int, long unsigned int> p(index, 0);
+	it = links.lower_bound(p);
+	
+	while ((it->first.first == index) && (it->first.second < neurons.size())){
+		if (it->second != 0.){
+			std::pair<size_t, double> p(it->first.second, it->second);
+			res.push_back(p);
+		}
+		++it;
+	}
+	return res;
+}
+
+std::set<size_t> Network::step(const std::vector<double>& noises){
+	std::set<size_t> res;
+	
+	for (size_t i(0) ; i<neurons.size() ; ++i){			//première itération sur tous les neurones pour affecter les nouveaux inputs
+		double inp;
+		if (neurons[i].is_inhibitory()){
+			inp = 0.4*noises[i];
+		} else {
+			inp = noises[i];
+		}
+		
+		std::vector<std::pair<size_t, double> > nei = neighbors(i);
+		
+		for ( size_t j(0) ; j<nei.size() ; ++j){			//itération sur tous les voisins (en amont) du i-ème neurone
+			if (neurons[nei[j].first].firing()){
+				if (neurons[nei[j].first].is_inhibitory()){
+					inp += nei[j].second;
+				} else {
+					inp = nei[j].second;
+				}
+			}
+		}
+		neurons[i].input(inp);
+	}
+	
+	for (size_t k(0) ; k<neurons.size() ; ++k){			//seconde itération sur les neurones pour appeler step
+		if (neurons[k].firing()){
+			neurons[k].reset();
+			res.insert(k);
+		} else {
+			neurons[k].step();
+		}
+	}
+	return res;
+}
+
+
+
+
+
+
+
+
+
+
+
+

@@ -54,7 +54,7 @@ TEST(networkTest, initialize) {
         mean += 0.001*I;
         sdv  += 0.001*I*I;
     }
-    sdv -= mean*mean;
+    sdv -= mean*mean;	
     sdv = std::sqrt(3*sdv);
 // --- recovery potential is -65 (rest value) X 0.2 (default b) = -13 for excitatory
 // --- and -13 * (1+_BVAR_/2) for inhibitory
@@ -65,23 +65,30 @@ TEST(networkTest, initialize) {
 TEST(networkTest, connect) {
     bool trylink = net.add_link(0, 0, 10);
     EXPECT_FALSE(trylink);
+    
     trylink = net.add_link(0, nlinks+1, .5);
     EXPECT_FALSE(trylink);
+    
     size_t excit_idx = 0;
-    for (; excit_idx<net.size(); excit_idx++) 
+    for (; excit_idx<net.size(); excit_idx++)	
         if (!net.neuron(excit_idx).is_inhibitory())
             break;
+
     size_t nlink = 3;
     double stren = 6.;
     std::pair<size_t, double> expec{nlink, -2*stren*nlink};
+    
 // --- add 3 links from inhibitors to same excitatory
+
     for (size_t inhib_idx=0; inhib_idx<net.size() && nlink>0; inhib_idx++) 
         if ((net.neuron(inhib_idx).is_inhibitory())
             && net.add_link(excit_idx, inhib_idx, stren))
             nlink--;
+
     EXPECT_EQ(expec, net.degree(excit_idx));
+
     std::vector<double> noisev(nlinks, noise);
-    size_t inhib1 = net.neighbors(excit_idx).front().first;
+    size_t inhib1 = net.neighbors(excit_idx).front().first;		
     int ifirs(0), efirs(0);
 // --- should fire once within 10 time steps
     for (size_t t=0; t<10; t++) {
@@ -90,7 +97,9 @@ TEST(networkTest, connect) {
         efirs += (int)net.neuron(excit_idx).firing();
     }
     EXPECT_EQ(1, ifirs);
+    
     EXPECT_EQ(1, efirs);
+    
 // --- input to excitatory should be noise
 // --- input to inhibitory should be .4*noise
     EXPECT_DOUBLE_EQ(noise,    net.neuron(excit_idx).input());
